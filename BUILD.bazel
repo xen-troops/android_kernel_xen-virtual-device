@@ -1,0 +1,173 @@
+load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@bazel_skylib//lib:sets.bzl", "sets")
+load(
+    "//build/kernel/kleaf:kernel.bzl",
+    "ddk_headers",
+    "ddk_module",
+    "kernel_abi",
+    "kernel_build",
+    "kernel_dtstree",
+    "kernel_images",
+    "kernel_module_group",
+    "kernel_modules_install",
+    "kernel_unstripped_modules_archive",
+    "merged_kernel_uapi_headers",
+)
+load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
+load("//build/bazel_common_rules/test_mappings:test_mappings.bzl", "test_mappings_dist")
+load("//build/bazel_common_rules/exec:exec.bzl", "exec")
+
+load("//common:modules.bzl", "COMMON_GKI_MODULES_LIST")
+
+
+
+package(
+    default_visibility = [
+        "//visibility:public",
+    ],
+)
+
+
+
+_GKI_MODULES_BASENAMES = [
+    paths.basename(module)
+    for module in COMMON_GKI_MODULES_LIST
+]
+
+_VIRT_COMMON_MODULES = [
+    # keep sorted
+    "failover.ko",
+    "goldfish_battery.ko",
+    "hci_vhci.ko",
+    "mac80211_hwsim.ko",
+    "net_failover.ko",
+    "rtc-test.ko",
+    "system_heap.ko",
+    "usbip-core.ko",
+    "vhci-hcd.ko",
+    "virt_wifi.ko",
+    "virtio-gpu.ko",
+    "virtio-rng.ko",
+    "virtio_balloon.ko",
+    "virtio_blk.ko",
+    "virtio_console.ko",
+    "virtio_dma_buf.ko",
+    "virtio_input.ko",
+    "virtio_net.ko",
+    "virtio_pci.ko",
+    "virtio_pci_legacy_dev.ko",
+    "virtio_pci_modern_dev.ko",
+    "virtio_snd.ko",
+    "vkms.ko",
+    "vmw_vsock_virtio_transport.ko",
+]
+
+_VIRT_AARCH64_MODULES = [
+    # keep sorted
+    "ambakmi.ko",
+    "armmmci.ko",
+    "clk-vexpress-osc.ko",
+    "drm_dma_helper.ko",
+    "nd_virtio.ko",
+    "pl111_drm.ko",
+    "psmouse.ko",
+    "vexpress-config.ko",
+    "vexpress-sysreg.ko",
+    "virtio_mmio.ko",
+    "virtio_pmem.ko",
+]
+
+_XEN_VIRT_AARCH64_MODULES = [
+    # keep sorted
+]
+
+
+
+
+filegroup(
+    name = "common_sources",
+    srcs = glob(
+        [
+            "*",
+            "configs/*",
+        ],
+        exclude = [
+            "Makefile",
+            "BUILD.bazel",
+        ],
+    ),
+)
+
+filegroup(
+    name = "xen_virtual_device_aarch64_common_sources",
+    srcs = [
+        ":common_sources",
+        "//common:kernel_aarch64_sources",
+    ],
+)
+
+kernel_build(
+    name = "xen_virtual_device_aarch64",
+    srcs = [":xen_virtual_device_aarch64_common_sources"],
+    outs = [
+        "System.map",
+        "arch/arm64/boot/Image",
+        "modules.builtin",
+        "modules.builtin.modinfo",
+        "vmlinux",
+        "vmlinux.symvers",
+    ],
+    base_kernel = None,
+    build_config = "build.config.xen_virtual_device.aarch64",
+    collect_unstripped_modules = True,
+    strip_modules = True,
+    module_outs = _GKI_MODULES_BASENAMES + _VIRT_COMMON_MODULES + _VIRT_AARCH64_MODULES + _XEN_VIRT_AARCH64_MODULES,
+)
+
+kernel_modules_install(
+    name = "xen_virtual_device_aarch64_modules_install",
+    kernel_build = ":xen_virtual_device_aarch64",
+)
+
+kernel_unstripped_modules_archive(
+    name = "xen_virtual_device_aarch64_unstripped_modules_archive",
+    kernel_build = ":xen_virtual_device_aarch64",
+)
+
+merged_kernel_uapi_headers(
+    name = "xen_virtual_device_aarch64_merged_kernel_uapi_headers",
+    kernel_build = ":xen_virtual_device_aarch64",
+)
+
+kernel_images(
+    name = "xen_virtual_device_aarch64_images",
+    build_initramfs = True,
+    build_boot = False,
+    kernel_build = ":xen_virtual_device_aarch64",
+    kernel_modules_install = ":xen_virtual_device_aarch64_modules_install",
+    modules_blocklist = "modules.blocklist",
+)
+
+copy_to_dist_dir(
+    name = "xen_virtual_device_aarch64_copy_to_dist_dir",
+    data = [
+        ":xen_virtual_device_aarch64",
+        ":xen_virtual_device_aarch64_images",
+        ":xen_virtual_device_aarch64_merged_kernel_uapi_headers",
+        ":xen_virtual_device_aarch64_modules_install",
+        ":xen_virtual_device_aarch64_unstripped_modules_archive",
+    ],
+    dist_dir = "out/xen_virtual_device_aarch64/dist",
+    flat = True,
+    log = "info",
+)
+
+exec(
+    name = "xen_virtual_device_aarch64_dist",
+    data = [
+        ":xen_virtual_device_aarch64_copy_to_dist_dir",
+    ],
+    script = """
+        $(rootpath :xen_virtual_device_aarch64_copy_to_dist_dir) $@
+    """,
+)
