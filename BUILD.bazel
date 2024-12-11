@@ -60,6 +60,9 @@ _VIRT_COMMON_MODULES = [
     "virtio_snd.ko",
     "vkms.ko",
     "vmw_vsock_virtio_transport.ko",
+    "mac80211.ko",
+    "cfg80211.ko",
+    "gzvm.ko",
 ]
 
 _VIRT_AARCH64_MODULES = [
