@@ -58,7 +58,6 @@ _VIRT_COMMON_MODULES = [
     "virtio_pci_legacy_dev.ko",
     "virtio_pci_modern_dev.ko",
     "virtio_snd.ko",
-    "vkms.ko",
     "vmw_vsock_virtio_transport.ko",
     "mac80211.ko",
     "cfg80211.ko",
@@ -84,6 +83,10 @@ _XEN_VIRT_AARCH64_MODULES = [
     # keep sorted
 ]
 
+# List of modules not copied to the distribution directory
+_IMPLICIT_MODULES = [
+    "vkms.ko",
+]
 
 
 
@@ -125,6 +128,7 @@ kernel_build(
     collect_unstripped_modules = True,
     strip_modules = True,
     module_outs = _GKI_MODULES_BASENAMES + _VIRT_COMMON_MODULES + _VIRT_AARCH64_MODULES + _XEN_VIRT_AARCH64_MODULES,
+    module_implicit_outs = _IMPLICIT_MODULES,
 )
 
 kernel_modules_install(
