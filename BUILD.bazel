@@ -42,7 +42,6 @@ _VIRT_COMMON_MODULES = [
     "mac80211_hwsim.ko",
     "net_failover.ko",
     "rtc-test.ko",
-    "system_heap.ko",
     "usbip-core.ko",
     "vhci-hcd.ko",
     "virt_wifi.ko",
@@ -89,7 +88,6 @@ _IMPLICIT_MODULES = [
 ]
 
 
-
 filegroup(
     name = "common_sources",
     srcs = glob(
@@ -118,10 +116,10 @@ kernel_build(
     outs = [
         "System.map",
         "arch/arm64/boot/Image",
-        "modules.builtin",
-        "modules.builtin.modinfo",
-        "vmlinux",
-        "vmlinux.symvers",
+    ],
+    make_goals = [
+        "Image",
+        "modules",
     ],
     base_kernel = None,
     build_config = "build.config.xen_virtual_device.aarch64",
@@ -134,11 +132,17 @@ kernel_build(
 kernel_modules_install(
     name = "xen_virtual_device_aarch64_modules_install",
     kernel_build = ":xen_virtual_device_aarch64",
+    kernel_modules = [
+        "//modules/imagination/ddk/rogue_km:pvrsrvkm",
+    ],
 )
 
 kernel_unstripped_modules_archive(
     name = "xen_virtual_device_aarch64_unstripped_modules_archive",
     kernel_build = ":xen_virtual_device_aarch64",
+    kernel_modules = [
+        "//modules/imagination/ddk/rogue_km:pvrsrvkm",
+    ],
 )
 
 merged_kernel_uapi_headers(
@@ -148,7 +152,7 @@ merged_kernel_uapi_headers(
 
 kernel_images(
     name = "xen_virtual_device_aarch64_images",
-    build_initramfs = True,
+    build_initramfs = False,
     build_boot = False,
     kernel_build = ":xen_virtual_device_aarch64",
     kernel_modules_install = ":xen_virtual_device_aarch64_modules_install",
