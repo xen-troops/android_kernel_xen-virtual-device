@@ -129,20 +129,24 @@ kernel_build(
     module_implicit_outs = _IMPLICIT_MODULES,
 )
 
+kernel_module_group(
+    name = "ext_modules",
+    srcs = [
+        "//modules/imagination/ddk/rogue_km:pvrsrvkm",
+        "//modules/renesas/disfwk_fe:disfwk_fe",
+    ],
+)
+
 kernel_modules_install(
     name = "xen_virtual_device_aarch64_modules_install",
     kernel_build = ":xen_virtual_device_aarch64",
-    kernel_modules = [
-        "//modules/imagination/ddk/rogue_km:pvrsrvkm",
-    ],
+    kernel_modules = [":ext_modules"],
 )
 
 kernel_unstripped_modules_archive(
     name = "xen_virtual_device_aarch64_unstripped_modules_archive",
     kernel_build = ":xen_virtual_device_aarch64",
-    kernel_modules = [
-        "//modules/imagination/ddk/rogue_km:pvrsrvkm",
-    ],
+    kernel_modules = [":ext_modules"],
 )
 
 merged_kernel_uapi_headers(
