@@ -13,10 +13,6 @@ load(
     "kernel_unstripped_modules_archive",
     "merged_kernel_uapi_headers",
 )
-load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
-load("//build/bazel_common_rules/test_mappings:test_mappings.bzl", "test_mappings_dist")
-load("//build/bazel_common_rules/exec:exec.bzl", "exec")
-
 load("//common:modules.bzl", "COMMON_GKI_MODULES_LIST")
 
 
@@ -87,6 +83,34 @@ _IMPLICIT_MODULES = [
     "vkms.ko",
 ]
 
+_KUNIT_AND_MISC_MODULES = [
+    "drivers/android/binder/rust_binder.ko",
+    "drivers/base/regmap/regmap-kunit.ko",
+    "drivers/base/regmap/regmap-ram.ko",
+    "drivers/base/regmap/regmap-raw-ram.ko",
+    "drivers/char/hw_random/cctrng.ko",
+    "drivers/clk/clk-gate_test.ko",
+    "drivers/clk/clk-test.ko",
+    "drivers/clk/clk_kunit_helpers.ko",
+    "drivers/hid/hid-uclogic-test.ko",
+    "drivers/iio/test/iio-test-format.ko",
+    "drivers/input/tests/input_test.ko",
+    "drivers/misc/open-dice.ko",
+    "drivers/of/of_kunit_helpers.ko",
+    "drivers/ptp/ptp_kvm.ko",
+    "drivers/rtc/lib_test.ko",
+    "drivers/virt/halla/exynos-hvm.ko",
+    "fs/ext4/ext4-inode-test.ko",
+    "fs/fat/fat_test.ko",
+    "kernel/time/time_test.ko",
+    "lib/kunit/kunit-example-test.ko",
+    "lib/kunit/kunit-test.ko",
+    "lib/kunit/kunit.ko",
+    "lib/kunit/platform-test.ko",
+    "net/core/dev_addr_lists_test.ko",
+    "sound/soc/soc-topology-test.ko",
+    "sound/soc/soc-utils-test.ko",
+]
 
 filegroup(
     name = "common_sources",
@@ -125,10 +149,15 @@ kernel_build(
     build_config = "build.config.xen_virtual_device.aarch64",
     collect_unstripped_modules = True,
     strip_modules = True,
-    module_outs = _GKI_MODULES_BASENAMES + _VIRT_COMMON_MODULES + _VIRT_AARCH64_MODULES + _XEN_VIRT_AARCH64_MODULES,
-    module_implicit_outs = _IMPLICIT_MODULES,
+    # Use sets.to_list to remove duplicates between GKI and VIRT module lists
+    module_outs = sets.to_list(sets.make(
+        _GKI_MODULES_BASENAMES +
+        _VIRT_COMMON_MODULES +
+        _VIRT_AARCH64_MODULES +
+        _XEN_VIRT_AARCH64_MODULES
+    )),
+    module_implicit_outs = _IMPLICIT_MODULES + _KUNIT_AND_MISC_MODULES,
 )
-
 kernel_module_group(
     name = "ext_modules",
     srcs = [
@@ -163,26 +192,21 @@ kernel_images(
     modules_blocklist = "modules.blocklist",
 )
 
-copy_to_dist_dir(
-    name = "xen_virtual_device_aarch64_copy_to_dist_dir",
-    data = [
+load("@rules_pkg//pkg:install.bzl", "pkg_install")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
+
+pkg_files(
+    name = "xen_virtual_device_artifacts",
+    srcs = [
         ":xen_virtual_device_aarch64",
         ":xen_virtual_device_aarch64_images",
         ":xen_virtual_device_aarch64_merged_kernel_uapi_headers",
         ":xen_virtual_device_aarch64_modules_install",
         ":xen_virtual_device_aarch64_unstripped_modules_archive",
     ],
-    dist_dir = "out/xen_virtual_device_aarch64/dist",
-    flat = True,
-    log = "info",
 )
 
-exec(
+pkg_install(
     name = "xen_virtual_device_aarch64_dist",
-    data = [
-        ":xen_virtual_device_aarch64_copy_to_dist_dir",
-    ],
-    script = """
-        $(rootpath :xen_virtual_device_aarch64_copy_to_dist_dir) $@
-    """,
+    srcs = [":xen_virtual_device_artifacts"],
 )
