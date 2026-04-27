@@ -1,0 +1,22 @@
+load("//build/kernel/kleaf:kernel.bzl", "ddk_module")
+
+filegroup(
+    name = "dma_buf_cma_heap_sources",
+    srcs = [
+        "dma_buf_cma_heap.c",
+    ],
+)
+
+ddk_module(
+    name = "dma_buf_cma_heap",
+    srcs = [":dma_buf_cma_heap_sources"],
+    out = "dma_buf_cma_heap.ko",
+    kernel_build = "//common-modules/xen-virtual-device:xen_virtual_device_aarch64",
+    visibility = [
+        "//common-modules/xen-virtual-device:__pkg__",
+    ],
+    deps = [
+        "//common:all_headers_aarch64",
+    ],
+
+)

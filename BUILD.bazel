@@ -1,116 +1,40 @@
+# Copyright (C) 2021 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:sets.bzl", "sets")
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@rules_pkg//pkg:install.bzl", "pkg_install")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "strip_prefix")
 load(
     "//build/kernel/kleaf:kernel.bzl",
     "ddk_headers",
     "ddk_module",
+    "dependency_graph",
+    "initramfs",
+    "initramfs_modules_lists_test",
     "kernel_abi",
     "kernel_build",
+    "kernel_compile_commands",
     "kernel_dtstree",
-    "kernel_images",
     "kernel_module_group",
+    "kernel_module_test",
     "kernel_modules_install",
-    "kernel_unstripped_modules_archive",
     "merged_kernel_uapi_headers",
+    "vendor_boot_image",
 )
-load("//common:modules.bzl", "COMMON_GKI_MODULES_LIST")
-
-
-
-package(
-    default_visibility = [
-        "//visibility:public",
-    ],
-)
-
-
-
-_GKI_MODULES_BASENAMES = [
-    paths.basename(module)
-    for module in COMMON_GKI_MODULES_LIST
-]
-
-_VIRT_COMMON_MODULES = [
-    # keep sorted
-    "failover.ko",
-    "goldfish_battery.ko",
-    "hci_vhci.ko",
-    "mac80211_hwsim.ko",
-    "net_failover.ko",
-    "rtc-test.ko",
-    "usbip-core.ko",
-    "vhci-hcd.ko",
-    "virt_wifi.ko",
-    "virtio-gpu.ko",
-    "virtio-rng.ko",
-    "virtio_balloon.ko",
-    "virtio_blk.ko",
-    "virtio_console.ko",
-    "virtio_dma_buf.ko",
-    "virtio_input.ko",
-    "virtio_net.ko",
-    "virtio_pci.ko",
-    "virtio_pci_legacy_dev.ko",
-    "virtio_pci_modern_dev.ko",
-    "virtio_snd.ko",
-    "vmw_vsock_virtio_transport.ko",
-    "mac80211.ko",
-    "cfg80211.ko",
-    "gzvm.ko",
-]
-
-_VIRT_AARCH64_MODULES = [
-    # keep sorted
-    "ambakmi.ko",
-    "armmmci.ko",
-    "clk-vexpress-osc.ko",
-    "drm_dma_helper.ko",
-    "nd_virtio.ko",
-    "pl111_drm.ko",
-    "psmouse.ko",
-    "vexpress-config.ko",
-    "vexpress-sysreg.ko",
-    "virtio_mmio.ko",
-    "virtio_pmem.ko",
-]
-
-_XEN_VIRT_AARCH64_MODULES = [
-    # keep sorted
-]
-
-# List of modules not copied to the distribution directory
-_IMPLICIT_MODULES = [
-    "vkms.ko",
-]
-
-_KUNIT_AND_MISC_MODULES = [
-    "drivers/android/binder/rust_binder.ko",
-    "drivers/base/regmap/regmap-kunit.ko",
-    "drivers/base/regmap/regmap-ram.ko",
-    "drivers/base/regmap/regmap-raw-ram.ko",
-    "drivers/char/hw_random/cctrng.ko",
-    "drivers/clk/clk-gate_test.ko",
-    "drivers/clk/clk-test.ko",
-    "drivers/clk/clk_kunit_helpers.ko",
-    "drivers/hid/hid-uclogic-test.ko",
-    "drivers/iio/test/iio-test-format.ko",
-    "drivers/input/tests/input_test.ko",
-    "drivers/misc/open-dice.ko",
-    "drivers/of/of_kunit_helpers.ko",
-    "drivers/ptp/ptp_kvm.ko",
-    "drivers/rtc/lib_test.ko",
-    "drivers/virt/halla/exynos-hvm.ko",
-    "fs/ext4/ext4-inode-test.ko",
-    "fs/fat/fat_test.ko",
-    "kernel/time/time_test.ko",
-    "lib/kunit/kunit-example-test.ko",
-    "lib/kunit/kunit-test.ko",
-    "lib/kunit/kunit.ko",
-    "lib/kunit/platform-test.ko",
-    "net/core/dev_addr_lists_test.ko",
-    "sound/soc/soc-topology-test.ko",
-    "sound/soc/soc-utils-test.ko",
-]
+load("//common:modules.bzl", "get_gki_modules_list", "get_kunit_modules_list")
 
 filegroup(
     name = "common_sources",
@@ -120,7 +44,6 @@ filegroup(
             "configs/*",
         ],
         exclude = [
-            "Makefile",
             "BUILD.bazel",
         ],
     ),
@@ -134,9 +57,184 @@ filegroup(
     ],
 )
 
+# In-tree modules explicitly copied to the distribution directory.
+# Keep this list sorted by module basename.
+_VIRT_COMMON_MODULES = [
+    "failover.ko",
+    "net_failover.ko",
+    "rpmsg_ns.ko",
+    "snd-aloop.ko",
+    "system_heap.ko",
+    "usbip-core.ko",
+    "v4l2-tpg.ko",
+    "vhci-hcd.ko",
+    "virtio-gpu.ko",
+    "virtio-rng.ko",
+    "virtio_balloon.ko",
+    "virtio_blk.ko",
+    "virtio_console.ko",
+    "virtio_dma_buf.ko",
+    "virtio_input.ko",
+    "virtio_net.ko",
+    "virtio_pci.ko",
+    "virtio_pci_legacy_dev.ko",
+    "virtio_pci_modern_dev.ko",
+    "virtio_rpmsg_bus.ko",
+    "virtio_snd.ko",
+    "vivid.ko",
+    "vmw_vsock_virtio_transport.ko",
+    "xen-gntalloc.ko",
+    "xen-gntdev.ko",
+]
+
+# Architecture-specific in-tree modules.
+# Keep this list sorted by module basename.
+_VIRT_AARCH64_MODULES = [
+    "ambakmi.ko",
+    "armmmci.ko",
+    "clk-vexpress-osc.ko",
+    "drm_dma_helper.ko",
+    "kfifo_buf.ko",
+    "nd_virtio.ko",
+    "pl111_drm.ko",
+    "psmouse.ko",
+    "scmi_iio.ko",
+    "vexpress-config.ko",
+    "vexpress-sysreg.ko",
+    "virtio_mmio.ko",
+    "virtio_pmem.ko",
+]
+
+# In-tree modules built by the kernel but not copied to the distribution
+# directory. Keep this list sorted by module basename.
+_IMPLICIT_MODULES = [
+    "6lowpan.ko",
+    "8021q.ko",
+    "9pnet.ko",
+    "9pnet_fd.ko",
+    "aqc111.ko",
+    "asix.ko",
+    "ax88179_178a.ko",
+    "bluetooth.ko",
+    "bsd_comp.ko",
+    "btbcm.ko",
+    "btintel.ko",
+    "btqca.ko",
+    "btrtl.ko",
+    "btsdio.ko",
+    "btusb.ko",
+    "can-bcm.ko",
+    "can-dev.ko",
+    "can-gw.ko",
+    "can-raw.ko",
+    "can.ko",
+    "cctrng.ko",
+    "cdc-acm.ko",
+    "cdc_eem.ko",
+    "cdc_ether.ko",
+    "cdc_ncm.ko",
+    "cfg80211.ko",
+    "clk-gate_test.ko",
+    "clk-test.ko",
+    "clk_kunit_helpers.ko",
+    "dev_addr_lists_test.ko",
+    "dummy-cpufreq.ko",
+    "dummy_hcd.ko",
+    "ext4-inode-test.ko",
+    "exynos-hvm.ko",
+    "fat_test.ko",
+    "ftdi_sio.ko",
+    "gnss.ko",
+    "goldfish_battery.ko",
+    "gs_usb.ko",
+    "gzvm.ko",
+    "hci_uart.ko",
+    "hci_vhci.ko",
+    "hid-uclogic-test.ko",
+    "hidp.ko",
+    "ieee802154.ko",
+    "ieee802154_6lowpan.ko",
+    "ieee802154_socket.ko",
+    "iio-test-format.ko",
+    "input_test.ko",
+    "kheaders.ko",
+    "kunit-example-test.ko",
+    "kunit-test.ko",
+    "kunit.ko",
+    "l2tp_core.ko",
+    "l2tp_ppp.ko",
+    "lib_test.ko",
+    "libarc4.ko",
+    "mac80211.ko",
+    "mac80211_hwsim.ko",
+    "mac802154.ko",
+    "macsec.ko",
+    "mii.ko",
+    "mt76-usb.ko",
+    "mt76.ko",
+    "mt76x0-common.ko",
+    "mt76x02-lib.ko",
+    "mt76x02-usb.ko",
+    "mt76x0u.ko",
+    "mt76x2-common.ko",
+    "mt76x2u.ko",
+    "netfs.ko",
+    "nfc.ko",
+    "nhc_dest.ko",
+    "nhc_fragment.ko",
+    "nhc_hop.ko",
+    "nhc_ipv6.ko",
+    "nhc_mobility.ko",
+    "nhc_routing.ko",
+    "nhc_udp.ko",
+    "of_kunit_helpers.ko",
+    "open-dice.ko",
+    "platform-test.ko",
+    "ppp_deflate.ko",
+    "ppp_generic.ko",
+    "ppp_mppe.ko",
+    "pppox.ko",
+    "pps_core.ko",
+    "pptp.ko",
+    "ptp.ko",
+    "ptp_kvm.ko",
+    "pulse8-cec.ko",
+    "pwrseq-core.ko",
+    "r8152.ko",
+    "r8153_ecm.ko",
+    "regmap-kunit.ko",
+    "regmap-ram.ko",
+    "regmap-raw-ram.ko",
+    "rfcomm.ko",
+    "rfkill.ko",
+    "rtc-test.ko",
+    "rtl8150.ko",
+    "rust_binder.ko",
+    "slcan.ko",
+    "slhc.ko",
+    "soc-topology-test.ko",
+    "soc-utils-test.ko",
+    "time_test.ko",
+    "tipc.ko",
+    "tipc_diag.ko",
+    "usbmon.ko",
+    "usbnet.ko",
+    "usbserial.ko",
+    "vcan.ko",
+    "vcpu_stall_detector.ko",
+    "virt_wifi.ko",
+    "virtual-cpufreq.ko",
+    "wwan.ko",
+    "xen-pciback.ko",
+    "zram.ko",
+    "zsmalloc.ko",
+]
+
 kernel_build(
     name = "xen_virtual_device_aarch64",
     srcs = [":xen_virtual_device_aarch64_common_sources"],
+    base_kernel = None,
+    build_config = "build.config.xen_virtual_device.aarch64",
     outs = [
         "System.map",
         "arch/arm64/boot/Image",
@@ -145,68 +243,54 @@ kernel_build(
         "Image",
         "modules",
     ],
-    base_kernel = None,
-    build_config = "build.config.xen_virtual_device.aarch64",
-    collect_unstripped_modules = True,
+    module_outs = _VIRT_COMMON_MODULES + _VIRT_AARCH64_MODULES,
+    module_implicit_outs = _IMPLICIT_MODULES,
     strip_modules = True,
-    # Use sets.to_list to remove duplicates between GKI and VIRT module lists
-    module_outs = sets.to_list(sets.make(
-        _GKI_MODULES_BASENAMES +
-        _VIRT_COMMON_MODULES +
-        _VIRT_AARCH64_MODULES +
-        _XEN_VIRT_AARCH64_MODULES
-    )),
-    module_implicit_outs = _IMPLICIT_MODULES + _KUNIT_AND_MISC_MODULES,
+    visibility = [
+        "//modules:__subpackages__",
+        "//common-modules:__subpackages__",
+    ],
 )
+
 kernel_module_group(
-    name = "ext_modules",
+    name = "xen_virtual_device_aarch64_external_modules",
     srcs = [
+        "//common-modules/xen-virtual-device/dma_buf_cma_heap:dma_buf_cma_heap",
         "//modules/imagination/ddk/rogue_km:pvrsrvkm",
         "//modules/renesas/disfwk_fe:disfwk_fe",
+        "//modules/renesas/rcar-mfis:rcar_mfis",
+        "//modules/renesas/rcar_gen5_rproc:rcar_gen5_rproc",
+    ],
+)
+
+merged_kernel_uapi_headers(
+    name = "xen_virtual_device_aarch64_merged_kernel_uapi_headers",
+    kernel_build = ":xen_virtual_device_aarch64",
+    kernel_modules = [
+        ":xen_virtual_device_aarch64_external_modules",
     ],
 )
 
 kernel_modules_install(
     name = "xen_virtual_device_aarch64_modules_install",
     kernel_build = ":xen_virtual_device_aarch64",
-    kernel_modules = [":ext_modules"],
+    kernel_modules = [
+        ":xen_virtual_device_aarch64_external_modules",
+    ],
 )
-
-kernel_unstripped_modules_archive(
-    name = "xen_virtual_device_aarch64_unstripped_modules_archive",
-    kernel_build = ":xen_virtual_device_aarch64",
-    kernel_modules = [":ext_modules"],
-)
-
-merged_kernel_uapi_headers(
-    name = "xen_virtual_device_aarch64_merged_kernel_uapi_headers",
-    kernel_build = ":xen_virtual_device_aarch64",
-)
-
-kernel_images(
-    name = "xen_virtual_device_aarch64_images",
-    build_initramfs = False,
-    build_boot = False,
-    kernel_build = ":xen_virtual_device_aarch64",
-    kernel_modules_install = ":xen_virtual_device_aarch64_modules_install",
-    modules_blocklist = "modules.blocklist",
-)
-
-load("@rules_pkg//pkg:install.bzl", "pkg_install")
-load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
 
 pkg_files(
-    name = "xen_virtual_device_artifacts",
+    name = "xen_virtual_device_aarch64_dist_files",
     srcs = [
         ":xen_virtual_device_aarch64",
-        ":xen_virtual_device_aarch64_images",
         ":xen_virtual_device_aarch64_merged_kernel_uapi_headers",
         ":xen_virtual_device_aarch64_modules_install",
-        ":xen_virtual_device_aarch64_unstripped_modules_archive",
     ],
+    strip_prefix = strip_prefix.files_only(),
+    visibility = ["//visibility:private"],
 )
 
 pkg_install(
     name = "xen_virtual_device_aarch64_dist",
-    srcs = [":xen_virtual_device_artifacts"],
+    srcs = [":xen_virtual_device_aarch64_dist_files"],
 )
