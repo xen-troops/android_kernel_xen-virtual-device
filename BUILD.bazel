@@ -41,7 +41,6 @@ filegroup(
     srcs = glob(
         [
             "*",
-            "configs/*",
         ],
         exclude = [
             "BUILD.bazel",
@@ -141,7 +140,6 @@ _IMPLICIT_MODULES = [
     "dummy-cpufreq.ko",
     "dummy_hcd.ko",
     "ext4-inode-test.ko",
-    "exynos-hvm.ko",
     "fat_test.ko",
     "ftdi_sio.ko",
     "gnss.ko",
@@ -163,7 +161,6 @@ _IMPLICIT_MODULES = [
     "kunit.ko",
     "l2tp_core.ko",
     "l2tp_ppp.ko",
-    "lib_test.ko",
     "libarc4.ko",
     "mac80211.ko",
     "mac80211_hwsim.ko",
@@ -197,7 +194,6 @@ _IMPLICIT_MODULES = [
     "pps_core.ko",
     "pptp.ko",
     "ptp.ko",
-    "ptp_kvm.ko",
     "pulse8-cec.ko",
     "pwrseq-core.ko",
     "r8152.ko",
@@ -228,13 +224,18 @@ _IMPLICIT_MODULES = [
     "xen-pciback.ko",
     "zram.ko",
     "zsmalloc.ko",
+    "thunderbolt.ko",
+    "binder_alloc_kunit.ko",
+    "crc-ccitt.ko",
+    "dwc_pcie_pmu.ko",
+    "test_rtc_lib.ko",
 ]
 
 kernel_build(
     name = "xen_virtual_device_aarch64",
     srcs = [":xen_virtual_device_aarch64_common_sources"],
-    base_kernel = None,
-    build_config = "build.config.xen_virtual_device.aarch64",
+    defconfig = "//common:arch/arm64/configs/gki_defconfig",
+    check_defconfig = "disabled",
     outs = [
         "System.map",
         "arch/arm64/boot/Image",
@@ -243,9 +244,16 @@ kernel_build(
         "Image",
         "modules",
     ],
+    makefile = "//common:Makefile",
     module_outs = _VIRT_COMMON_MODULES + _VIRT_AARCH64_MODULES,
     module_implicit_outs = _IMPLICIT_MODULES,
     strip_modules = True,
+    defconfig_fragments = [
+        "virtual_device_core.fragment",
+        "virtual_device.fragment",
+        "aarch64.fragment",
+        "xenvm.aarch64.fragment",
+    ],
     visibility = [
         "//modules:__subpackages__",
         "//common-modules:__subpackages__",
