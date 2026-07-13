@@ -268,7 +268,6 @@ kernel_module_group(
         "//modules/renesas/disfwk_fe:disfwk_fe",
         "//modules/renesas/rcar-mfis:rcar_mfis",
         "//modules/renesas/rcar_gen5_rproc:rcar_gen5_rproc",
-        "//modules/renesas/pcie6_rcar_gen5_host:pcie6_rcar_gen5_host",
         "//modules/renesas/camfwk_fe:camfwk_fe",
     ],
 )
