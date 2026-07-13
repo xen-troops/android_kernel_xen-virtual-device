@@ -61,9 +61,11 @@ filegroup(
 _VIRT_COMMON_MODULES = [
     "failover.ko",
     "net_failover.ko",
+    "optee.ko",
     "rpmsg_ns.ko",
     "snd-aloop.ko",
     "system_heap.ko",
+    "tee.ko",
     "usbip-core.ko",
     "v4l2-tpg.ko",
     "vhci-hcd.ko",
