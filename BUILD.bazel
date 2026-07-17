@@ -249,7 +249,7 @@ kernel_build(
     module_outs = _VIRT_COMMON_MODULES + _VIRT_AARCH64_MODULES,
     module_implicit_outs = _IMPLICIT_MODULES,
     strip_modules = True,
-    defconfig_fragments = [
+    post_defconfig_fragments = [
         "virtual_device_core.fragment",
         "virtual_device.fragment",
         "aarch64.fragment",
