@@ -239,6 +239,7 @@ kernel_build(
     outs = [
         "System.map",
         "arch/arm64/boot/Image",
+        ".config",
     ],
     make_goals = [
         "Image",
