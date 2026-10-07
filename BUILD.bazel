@@ -63,6 +63,7 @@ _VIRT_COMMON_MODULES = [
     "net_failover.ko",
     "optee.ko",
     "rpmsg_ns.ko",
+    "scmi_transport_virtio.ko",
     "snd-aloop.ko",
     "system_heap.ko",
     "tee.ko",
