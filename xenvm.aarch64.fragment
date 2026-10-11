@@ -19,3 +19,7 @@ CONFIG_OPTEE=m
 # Disable unnecessary OP-TEE options
 # CONFIG_HW_RANDOM_OPTEE is not set
 # CONFIG_ARM_SCMI_TRANSPORT_OPTEE is not set
+
+
+CONFIG_OPEN_DICE=m
+CONFIG_VLAN_8021Q=m

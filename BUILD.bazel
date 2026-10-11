@@ -62,6 +62,7 @@ _VIRT_COMMON_MODULES = [
     "failover.ko",
     "net_failover.ko",
     "optee.ko",
+    "open-dice.ko",
     "rpmsg_ns.ko",
     "snd-aloop.ko",
     "system_heap.ko",
@@ -86,6 +87,7 @@ _VIRT_COMMON_MODULES = [
     "vmw_vsock_virtio_transport.ko",
     "xen-gntalloc.ko",
     "xen-gntdev.ko",
+    "8021q.ko"
 ]
 
 # Architecture-specific in-tree modules.
@@ -110,7 +112,6 @@ _VIRT_AARCH64_MODULES = [
 # directory. Keep this list sorted by module basename.
 _IMPLICIT_MODULES = [
     "6lowpan.ko",
-    "8021q.ko",
     "9pnet.ko",
     "9pnet_fd.ko",
     "aqc111.ko",
@@ -187,7 +188,6 @@ _IMPLICIT_MODULES = [
     "nhc_routing.ko",
     "nhc_udp.ko",
     "of_kunit_helpers.ko",
-    "open-dice.ko",
     "platform-test.ko",
     "ppp_deflate.ko",
     "ppp_generic.ko",
